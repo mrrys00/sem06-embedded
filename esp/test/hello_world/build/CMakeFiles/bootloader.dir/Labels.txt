@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/CMakeFiles/bootloader
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/CMakeFiles/bootloader.rule
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/CMakeFiles/bootloader-complete.rule
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/anubis/College/sem06-embedded/esp/test/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
