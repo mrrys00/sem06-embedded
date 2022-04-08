@@ -12,5 +12,12 @@
     "idf.port": "/dev/ttyUSB0",
     "idf.pythonBinPath": "/home/anubis/.espressif/python_env/idf4.4_py3.8_env/bin/python",
     "idf.toolsPath": "/home/anubis/.espressif",
-    "idf.flashType": "UART"
+    "idf.flashType": "UART",
+    "files.associations": {
+        "task.h": "c",
+        "audio_event_iface.h": "c",
+        "freertos.h": "c",
+        "esp_peripherals.h": "c",
+        "*.inc": "c"
+    }
 }

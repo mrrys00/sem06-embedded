@@ -7,6 +7,7 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <stdio.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/uart.h"
@@ -38,6 +39,13 @@
 
 #define BUF_SIZE (1024)
 
+static void intOut(const char* desc, int n) {
+    char buf[128];
+    const char* text = (desc == NULL) ? "" : desc;
+    sprintf(buf, "%s: %d\r", text, n);
+    uart_write_bytes(ECHO_UART_PORT_NUM, buf, strlen(buf));
+}
+
 static void echo_task(void *arg)
 {
     /* Configure parameters of an UART driver,
@@ -56,24 +64,30 @@ static void echo_task(void *arg)
     intr_alloc_flags = ESP_INTR_FLAG_IRAM;
 #endif
 
-    ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
+    QueueHandle_t uart_queue;
+    ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 10, &uart_queue, intr_alloc_flags));
+    // ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
     ESP_ERROR_CHECK(uart_param_config(ECHO_UART_PORT_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(ECHO_UART_PORT_NUM, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS, ECHO_TEST_CTS));
 
     // while(1) uart_write_bytes(ECHO_UART_PORT_NUM, "abcde", 6);
 
     // // Configure a temporary buffer for the incoming data
-    uint8_t *data = (uint8_t *) malloc(BUF_SIZE);
+    // uint8_t *data = (uint8_t *) malloc(BUF_SIZE);
+    static uint8_t data[BUF_SIZE];
+    data[0] = 64;
 
     while (1) {
         // Read data from the UART
-        int len = uart_read_bytes(ECHO_UART_PORT_NUM, data, BUF_SIZE, 2000 / portTICK_RATE_MS);
-        // Write data back to the UART
-        if(len > 0) {
-            uart_write_bytes(ECHO_UART_PORT_NUM, (const char *) data, len);
-        } else {
-            uart_write_bytes(ECHO_UART_PORT_NUM, "Nothing!\n\r", 11);
-        }
+        int len = uart_read_bytes(ECHO_UART_PORT_NUM, data, 1, 2000 / portTICK_RATE_MS);
+        
+        intOut(" > len", len);
+        intOut(" > data[0]", data[0]);
+        // if(len > 0) {
+        //     uart_write_bytes(ECHO_UART_PORT_NUM, (const char *) data, len);
+        // } else {
+        //     uart_write_bytes(ECHO_UART_PORT_NUM, "Nothing!\n\r", 11);
+        // }
         
     }
 }
