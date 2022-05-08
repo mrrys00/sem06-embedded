@@ -33,11 +33,31 @@
 
 // #define ECHO_UART_PORT_NUM      (CONFIG_EXAMPLE_UART_PORT_NUM)
 #define ECHO_UART_PORT_NUM      (0)
+#define ECHO_UART_PORT_NUM_IN   (1)
 // #define ECHO_UART_BAUD_RATE     (CONFIG_EXAMPLE_UART_BAUD_RATE)
 #define ECHO_UART_BAUD_RATE     (9600)
 #define ECHO_TASK_STACK_SIZE    (CONFIG_EXAMPLE_TASK_STACK_SIZE)
 
 #define BUF_SIZE (1024)
+
+// #define BLINK_GPIO 5
+// static int s_led_state = 0;
+
+// static void blink_led(void)
+// {
+//     /* Set the GPIO level according to the state (LOW or HIGH)*/
+//     gpio_set_level(BLINK_GPIO, s_led_state);
+// }
+
+// static void configure_led(void)
+// {
+//     // ESP_LOGI(TAG, "Example configured to blink GPIO LED!");
+//     gpio_reset_pin(BLINK_GPIO);
+//     /* Set the GPIO as a push/pull output */
+//     gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
+// }
+
+static int received = 0;
 
 static void intOut(const char* desc, int n) {
     char buf[128];
@@ -64,11 +84,18 @@ static void echo_task(void *arg)
     intr_alloc_flags = ESP_INTR_FLAG_IRAM;
 #endif
 
-    QueueHandle_t uart_queue;
+    QueueHandle_t uart_queue, uart_queue_in;
+
     ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 10, &uart_queue, intr_alloc_flags));
     // ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
     ESP_ERROR_CHECK(uart_param_config(ECHO_UART_PORT_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(ECHO_UART_PORT_NUM, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS, ECHO_TEST_CTS));
+
+    ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM_IN, BUF_SIZE * 2, BUF_SIZE * 2, 10, &uart_queue_in, intr_alloc_flags));
+    // ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
+    ESP_ERROR_CHECK(uart_param_config(ECHO_UART_PORT_NUM_IN, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(ECHO_UART_PORT_NUM_IN, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS, ECHO_TEST_CTS));
+
 
     // while(1) uart_write_bytes(ECHO_UART_PORT_NUM, "abcde", 6);
 
@@ -77,11 +104,20 @@ static void echo_task(void *arg)
     static uint8_t data[BUF_SIZE];
     data[0] = 64;
 
+    // configure_led();
+
     while (1) {
+        // blink_led();
+        // s_led_state = !s_led_state; 
+        // s_led_state = 1;
         // Read data from the UART
-        int len = uart_read_bytes(ECHO_UART_PORT_NUM, data, 1, 2000 / portTICK_RATE_MS);
+        int len = uart_read_bytes(ECHO_UART_PORT_NUM_IN, data, 1, 2000 / portTICK_RATE_MS);
         
         intOut(" > len", len);
+        // if(len == 0) {
+        //     printf("Empty imput\n");
+        // }
+        
         intOut(" > data[0]", data[0]);
         // if(len > 0) {
         //     uart_write_bytes(ECHO_UART_PORT_NUM, (const char *) data, len);
