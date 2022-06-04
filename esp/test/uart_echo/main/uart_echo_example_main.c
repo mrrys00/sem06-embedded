@@ -91,10 +91,10 @@ static void echo_task(void *arg)
     ESP_ERROR_CHECK(uart_param_config(ECHO_UART_PORT_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(ECHO_UART_PORT_NUM, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS, ECHO_TEST_CTS));
 
-    ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM_IN, BUF_SIZE * 2, BUF_SIZE * 2, 10, &uart_queue_in, intr_alloc_flags));
-    // ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
-    ESP_ERROR_CHECK(uart_param_config(ECHO_UART_PORT_NUM_IN, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(ECHO_UART_PORT_NUM_IN, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS, ECHO_TEST_CTS));
+    // ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM_IN, BUF_SIZE * 2, BUF_SIZE * 2, 10, &uart_queue_in, intr_alloc_flags));
+    // // ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
+    // ESP_ERROR_CHECK(uart_param_config(ECHO_UART_PORT_NUM_IN, &uart_config));
+    // ESP_ERROR_CHECK(uart_set_pin(ECHO_UART_PORT_NUM_IN, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS, ECHO_TEST_CTS));
 
 
     // while(1) uart_write_bytes(ECHO_UART_PORT_NUM, "abcde", 6);
@@ -111,7 +111,7 @@ static void echo_task(void *arg)
         // s_led_state = !s_led_state; 
         // s_led_state = 1;
         // Read data from the UART
-        int len = uart_read_bytes(ECHO_UART_PORT_NUM_IN, data, 1, 2000 / portTICK_RATE_MS);
+        int len = uart_read_bytes(ECHO_UART_PORT_NUM, data, BUF_SIZE, 2000 / portTICK_RATE_MS);
         
         intOut(" > len", len);
         // if(len == 0) {
