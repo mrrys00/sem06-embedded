@@ -7,8 +7,9 @@ prepare:
 
 .PHONY: build
 build:
+	gcc `pkg-config --cflags gtk4` complex_gui.c -o p1 `pkg-config --libs gtk4`
 	# gcc -o p1 simple_gui.c `pkg-config --cflags --libs gtk+-3.0`
-	gcc -o p1 complex_gui.c `pkg-config --cflags --libs gtk+-3.0`
+	# gcc -o p1 complex_gui.c `pkg-config --cflags --libs gtk+-3.0`
 	# $(GCCF) -c simple_gui.c `pkg-config --cflags --libs gtk+-3.0`
 	# $(GCCF) -c simple_gui.o -o p1 `pkg-config --cflags --libs gtk+-3.0`
 	# chmod +x ./p1

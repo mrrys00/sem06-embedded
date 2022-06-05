@@ -3,6 +3,8 @@
     "files.associations": {
         "exampleappprefs.h": "c",
         "gtk.h": "c",
-        "gtkaccellabel.h": "c"
+        "gtkaccellabel.h": "c",
+        "string.h": "c",
+        "gdkkeysyms.h": "c"
     }
 }
