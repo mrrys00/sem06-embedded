@@ -7,7 +7,8 @@ prepare:
 
 .PHONY: build
 build:
-	gcc -g -Wall simple_gui.c -o simple_gui `pkg-config --cflags --libs gtk+-2.0`
+	gcc -g -Wall simple_gui.c -o simple_gui `pkg-config --cflags --libs gtk+-3.0`
+	# gcc -g -Wall simple_gui_2.c -o simple_gui_2 `pkg-config --cflags --libs gtk+-2.0`
 
 .PHONY: run
 run:
