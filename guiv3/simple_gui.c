@@ -427,8 +427,7 @@ static void text_edit_open_file(GtkMenuItem *menu_item,
    }
 }
 
-static void text_edit_cut_to_clipboard(GtkMenuItem *menu_item,
-                                       GtkNotebook *notebook)
+static void text_edit_cut_to_clipboard(GtkMenuItem *menu_item, GtkNotebook *notebook)
 {
    GList *child_list;
    GtkWidget *textview;
