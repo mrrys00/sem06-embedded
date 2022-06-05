@@ -56,7 +56,7 @@ typedef struct
    EditMenu *editmenu;
    OptionsMenu *options_menu;
    HelpMenu *helpmenu;
-} TextEditUI;
+} GreatGUIUI;
 
 typedef struct
 {
@@ -70,9 +70,9 @@ static GList *filename_data = NULL;       /* Linked list of open file names */
 static PangoFontDescription *desc = NULL; /* Global font for all tabs */
 
 static void quit_application(GtkWidget *, gpointer);
-static void text_edit_init_GUI(TextEditUI *);
-static void text_edit_create_menus(TextEditUI *);
-static void text_edit_create_toolbar_items(TextEditUI *);
+static void text_edit_init_GUI(GreatGUIUI *);
+static void text_edit_create_menus(GreatGUIUI *);
+static void text_edit_create_toolbar_items(GreatGUIUI *);
 FileObject *text_edit_file_new(void);
 static void text_edit_tab_new_with_file(GtkMenuItem *, GtkNotebook *);
 // static void text_edit_select_font(GtkMenuItem *, gpointer);
@@ -89,13 +89,13 @@ static gchar *text_edit_get_filename(gint tab_num);
 
 int main(int argc, char *argv[])
 {
-   TextEditUI app;
+   GreatGUIUI app;
 
    gtk_init(&argc, &argv);
 
    app.toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL); /* Main window */
 
-   gtk_window_set_title(GTK_WINDOW(app.toplevel), "TextEdit");
+   gtk_window_set_title(GTK_WINDOW(app.toplevel), "GreatGUI");
    gtk_window_set_default_size(GTK_WINDOW(app.toplevel), 650, 350);
 
    /*
@@ -119,7 +119,7 @@ static void quit_application(GtkWidget *window, gpointer data)
    gtk_main_quit();
 }
 
-static void text_edit_init_GUI(TextEditUI *app)
+static void text_edit_init_GUI(GreatGUIUI *app)
 {
    desc = pango_font_description_from_string("Progsole normal 12");
 
@@ -127,7 +127,7 @@ static void text_edit_init_GUI(TextEditUI *app)
 
    text_edit_register_filename("Untitled", 0); /* Keep track of scratch buffer's filename */
 
-   app->vbox = gtk_box_new(FALSE, 0);
+   app->vbox = gtk_box_new(TRUE, 0);      // vertically position - true :D
    app->notebook = gtk_notebook_new();
    app->menubar = gtk_menu_bar_new();
 
@@ -140,7 +140,7 @@ static void text_edit_init_GUI(TextEditUI *app)
    gtk_container_add(GTK_CONTAINER(app->toplevel), app->vbox);
 }
 
-static void text_edit_create_menus(TextEditUI *app)
+static void text_edit_create_menus(GreatGUIUI *app)
 {
    FileMenu *file;
    EditMenu *edit;
@@ -162,12 +162,12 @@ static void text_edit_create_menus(TextEditUI *app)
 
    file->menu_label = gtk_menu_item_new_with_label("File");
    file->menu = gtk_menu_new();
-   file->new = gtk_menu_item_new();
-   file->open = gtk_menu_item_new();
-   file->save = gtk_menu_item_new();
-   file->close = gtk_menu_item_new();
+   file->new = gtk_menu_item_new_with_label("New");
+   file->open = gtk_menu_item_new_with_label("Open");
+   file->save = gtk_menu_item_new_with_label("Save");
+   file->close = gtk_menu_item_new_with_label("Close");
    file->separator = gtk_separator_menu_item_new();
-   file->quit = gtk_menu_item_new();
+   file->quit = gtk_menu_item_new_with_label("Quit");
    gtk_menu_item_set_submenu(GTK_MENU_ITEM(file->menu_label), file->menu);
    gtk_menu_shell_append(GTK_MENU_SHELL(file->menu), file->new);
    gtk_menu_shell_append(GTK_MENU_SHELL(file->menu), file->open);
@@ -189,9 +189,9 @@ static void text_edit_create_menus(TextEditUI *app)
 
    edit->menu_label = gtk_menu_item_new_with_label("Edit");
    edit->menu = gtk_menu_new();
-   edit->cut = gtk_menu_item_new();
-   edit->copy = gtk_menu_item_new();
-   edit->paste = gtk_menu_item_new();
+   edit->copy = gtk_menu_item_new_with_label("Copy");
+   edit->cut = gtk_menu_item_new_with_label("Cut");
+   edit->paste = gtk_menu_item_new_with_label("Paste");
    gtk_menu_item_set_submenu(GTK_MENU_ITEM(edit->menu_label), edit->menu);
    gtk_menu_shell_append(GTK_MENU_SHELL(edit->menu), edit->cut);
    gtk_menu_shell_append(GTK_MENU_SHELL(edit->menu), edit->copy);
@@ -206,13 +206,13 @@ static void text_edit_create_menus(TextEditUI *app)
 
    options->menu_label = gtk_menu_item_new_with_label("Options");
    options->menu = gtk_menu_new();
-   options->font = gtk_menu_item_new();
+   options->font = gtk_menu_item_new_with_label("Pzdr Szymon Ryś :D");
    gtk_menu_item_set_submenu(GTK_MENU_ITEM(options->menu_label), options->menu);
    gtk_menu_shell_append(GTK_MENU_SHELL(options->menu), options->font);
 
    help->menu_label = gtk_menu_item_new_with_label("Help");
    help->menu = gtk_menu_new();
-   help->about = gtk_menu_item_new();
+   help->about = gtk_menu_item_new_with_label("About");
    gtk_menu_item_set_submenu(GTK_MENU_ITEM(help->menu_label), help->menu);
    gtk_menu_shell_append(GTK_MENU_SHELL(help->menu), help->about);
 
@@ -255,7 +255,7 @@ static void text_edit_create_menus(TextEditUI *app)
    gtk_box_pack_start(GTK_BOX(app->vbox), app->menubar, FALSE, FALSE, 0);
 }
 
-static void text_edit_create_toolbar_items(TextEditUI *app)
+static void text_edit_create_toolbar_items(GreatGUIUI *app)
 {
    GtkWidget *toolbar;
    GtkToolItem *new, *open, *save;
@@ -551,7 +551,7 @@ static void text_edit_show_about_dialog(GtkMenuItem *menu_item,
    const gchar *authors[] = {"Glenn Schemenauer", NULL};
 
    gtk_show_about_dialog(parent_window,
-                         "program-name", "Text Edit",
+                         "program-name", "Great GUI",
                          "authors", authors,
                          "license", "GNU General Public License",
                          "comments", "A simple lightweight GTK+ text editor",
@@ -593,9 +593,6 @@ static void text_edit_save_file(GtkMenuItem *menu_item,
 
    if (strcmp(gtk_label_get_text(GTK_LABEL(tab_label)), "Untitled") == 0)
    {
-      /**
-       * File currently has no name.  Allow user to name the file.
-       */
 
       dialog = gtk_file_chooser_dialog_new("Save File", NULL,
                                            GTK_FILE_CHOOSER_ACTION_SAVE,
