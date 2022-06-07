@@ -18,6 +18,8 @@
         "audio_event_iface.h": "c",
         "freertos.h": "c",
         "esp_peripherals.h": "c",
-        "*.inc": "c"
+        "*.inc": "c",
+        "audio_idf_version.h": "c",
+        "*.ipp": "c"
     }
 }

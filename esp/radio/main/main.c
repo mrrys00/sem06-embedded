@@ -20,6 +20,12 @@
 #include "aac_decoder.h"
 #include "mp3_decoder.h"
 
+#include <sys/unistd.h>
+#include <sys/stat.h>
+#include "esp_vfs_fat.h"
+#include "sdmmc_cmd.h"
+#include "driver/sdmmc_host.h"
+
 #include "esp_peripherals.h"
 #include "periph_wifi.h"
 #include "board.h"
@@ -38,14 +44,21 @@
 #include "config.h"
 
 static const char *TAG = "ESP32 Internet radio";
+static char r_url[URL_BUF_SIZE];
+esp_err_t ret;
+// static int8_t r_url_avail = 0;
 
 void configTask(void *args);
 void radioTask(void *args);
 static esp_err_t input_key_service_cb(periph_service_handle_t handle, periph_service_event_t *evt, void *ctx);
+radioformat_t decide_radioformat(char *prepared);
+int read_sd();
+sdmmc_slot_config_t get_sdmmc_slot_config();
 
 MessageBufferHandle_t urlMsg;
 TaskHandle_t configTaskHandler, radioTaskHandler;
-
+uint8_t play_clicked = 0;
+SemaphoreHandle_t xSemaphore;
 
 TickType_t msTicks(unsigned int ms) {
     return ms / portTICK_PERIOD_MS;
@@ -67,8 +80,114 @@ int _http_stream_event_handle(http_stream_event_msg_t *msg)
     return ESP_OK;
 }
 
+sdmmc_slot_config_t get_sdmmc_slot_config() {
+    // This initializes the slot without card detect (CD) and write protect (WP) signals.
+    // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
+    sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+
+    // To use 1-line SD mode, change this to 1:
+    slot_config.width = 1;
+
+    // On chips where the GPIOs used for SD card can be configured, set them in
+    // the slot_config structure:
+    #ifdef SOC_SDMMC_USE_GPIO_MATRIX
+        slot_config.clk = GPIO_NUM_14;
+        slot_config.cmd = GPIO_NUM_15;
+        slot_config.d0 = GPIO_NUM_2;
+        slot_config.d1 = GPIO_NUM_4;
+        slot_config.d2 = GPIO_NUM_12;
+        slot_config.d3 = GPIO_NUM_13;
+    #endif
+
+    // Enable internal pullups on enabled pins. The internal pullups
+    // are insufficient however, please make sure 10k external pullups are
+    // connected on the bus. This is for debug / example purpose only.
+    slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
+
+    return slot_config;
+}
+
+int read_sd()
+{
+    int sd_avail = 0;
+    sdmmc_card_t *card;
+    const char mount_point[] = MOUNT_POINT;
+    ESP_LOGI(TAG, "Initializing SD card");
+    ESP_LOGI(TAG, "Using SDMMC peripheral");
+    sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+    sdmmc_slot_config_t slot_config = get_sdmmc_slot_config();
+    ESP_LOGI(TAG, "Mounting filesystem");
+    ret = esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &card);
+    if (ret == ESP_OK) {
+        sd_avail = 1;
+        ESP_LOGI(TAG, "SD Filesystem mounted");
+    } else {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Failed to mount filesystem. "
+                     "If you want the card to be formatted, set the EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.");
+        } else {
+            ESP_LOGE(TAG, "Failed to initialize the card (%s). "
+                     "Make sure SD card lines have pull-up resistors in place.", esp_err_to_name(ret));
+        }
+        sd_avail = 0;
+    }
+
+    if (sd_avail) {
+        int retval = 0;
+        // radioformat_t radioformat = RADIOFORMAT_UNKNOWN;
+        // Open renamed file for reading
+        ESP_LOGI(TAG, "Reading file %s", cfg_file);
+        FILE *f = fopen(cfg_file, "r");
+        if (f == NULL) {
+            ESP_LOGE(TAG, "Failed to open file for reading");
+        } else {
+            // Read a line from file
+            char c;
+            for (int i=0; i<URL_BUF_SIZE-1; i++) {
+                c = (char)fgetc(f);
+                if (feof(f) || c < 0x21 || 0x7a < c) {  // file ended or a whitespace occurred
+                    r_url[i] = '\0';
+                    retval = 1;
+                    break;
+                } else {
+                    r_url[i] = c;
+                }
+            }
+            fclose(f);
+        }
+
+        esp_vfs_fat_sdcard_unmount(mount_point, card);
+        return retval;
+    } else {
+        return 0;
+    }
+}
+
+radioformat_t decide_radioformat(char *prepared) {
+    int i;
+    for (i = 0; i < URL_BUF_SIZE-1; i++) {
+        if (r_url[i] == '\0') break;
+    }
+    radioformat_t radioformat = RADIOFORMAT_UNKNOWN;
+    // ESP_LOGW(TAG, "end=[%c%c%c%c]", r_url[i-4], r_url[i-3], r_url[i-2], r_url[i-1]);
+    if (i >= 5 && (r_url[i-4] == '.' || r_url[i-4] == '#')) {
+        if (r_url[i-3] == 'm' && r_url[i-2] == 'p' && r_url[i-1] == '3') {
+            radioformat = RADIOFORMAT_MP3;
+        } else if (r_url[i-3] == 'a' && r_url[i-2] == 'a' && r_url[i-1] == 'c') {
+            radioformat = RADIOFORMAT_AAC;
+        }
+    }
+    strcpy(prepared, r_url);
+    if (prepared[i-4] == '#') prepared[i-4] = '\0';  // ignoring appended format
+
+    return radioformat;
+}
+
 void app_main(void)
 {
+    xSemaphore = xSemaphoreCreateBinary();
+    strcpy(r_url, "http://stream4.nadaje.com:11986/prs#mp3");
+
     // ESP CONFIG //
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES) {
@@ -85,11 +204,44 @@ void app_main(void)
     esp_log_level_set(TAG, ESP_LOG_DEBUG);
     // END OF ESP CONFIG //
 
+    // ESP_LOGI(TAG, "[ 1 ] Initialize peripherals");
+    esp_periph_config_t periph_cfg2 = DEFAULT_ESP_PERIPH_SET_CONFIG();
+    esp_periph_set_handle_t set2 = esp_periph_set_init(&periph_cfg2);
+
+    // ESP_LOGI(TAG, "[ 2 ] Initialize Button peripheral with board init");
+    audio_board_key_init(set2);
+
+    // ESP_LOGI(TAG, "[ 3 ] Create and start input key service");
+    input_key_service_info_t input_key_info[] = INPUT_KEY_DEFAULT_INFO();
+    input_key_service_cfg_t input_cfg = INPUT_KEY_SERVICE_DEFAULT_CONFIG();
+    input_cfg.handle = set2;
+    input_cfg.based_cfg.task_stack = 4 * 1024;
+    periph_service_handle_t input_ser = input_key_service_create(&input_cfg);
+
+    input_key_service_add_key(input_ser, input_key_info, INPUT_KEY_NUM);
+    periph_service_set_callback(input_ser, input_key_service_cb, NULL);
+
     urlMsg = xMessageBufferCreate(URL_BUF_SIZE*2);
     // xTaskCreate(configTask, NULL, CONFIG_STACK_DEPTH, NULL, 10, &configTaskHandler);
     // xTaskCreate(radioTask, NULL, RADIO_STACK_DEPTH, NULL, 20, &radioTaskHandler);
 
-    radioTask(NULL);
+    while (1) {
+        if( xSemaphore != NULL ) {
+            /* See if we can obtain the semaphore.  If the semaphore is not
+            available wait 10 ticks to see if it becomes free. */
+            if( xSemaphoreTake( xSemaphore, ( TickType_t ) 10 ) == pdTRUE )
+            {
+                radioTask(NULL);
+                // xSemaphoreGive( xSemaphore );
+            }
+            else
+            {
+                /* We could not obtain the semaphore and can therefore not access
+                the shared resource safely. */
+            }
+        }
+    }
+    // radioTask(NULL);
 }
 
 void configTask(void *args) {
@@ -106,22 +258,48 @@ void configTask(void *args) {
 }
 
 void radioTask(void *args) {
-    
+    // play_clicked = 0;
+
     char urlBuf[URL_BUF_SIZE];
-    radioformat_t radioFormat = RADIOFORMAT_MP3;
+    if (!read_sd()) {
+        ESP_LOGE(TAG, "Unable to PLAY - failed to read SD card");
+        return;
+    }
+    radioformat_t radioFormat = decide_radioformat(urlBuf);
+    if (radioFormat == RADIOFORMAT_UNKNOWN) {
+        ESP_LOGE(TAG, "Unable to PLAY - unknown stream format [url=%s]", urlBuf);
+        return;
+    }
+
+    // ESP_LOGI(TAG, "[ 1 ] Initialize peripherals");
+    esp_periph_config_t periph_cfg2 = DEFAULT_ESP_PERIPH_SET_CONFIG();
+    esp_periph_set_handle_t set2 = esp_periph_set_init(&periph_cfg2);
+
+    // ESP_LOGI(TAG, "[ 2 ] Initialize Button peripheral with board init");
+    audio_board_key_init(set2);
+
+    // ESP_LOGI(TAG, "[ 3 ] Create and start input key service");
+    input_key_service_info_t input_key_info[] = INPUT_KEY_DEFAULT_INFO();
+    input_key_service_cfg_t input_cfg = INPUT_KEY_SERVICE_DEFAULT_CONFIG();
+    input_cfg.handle = set2;
+    input_cfg.based_cfg.task_stack = 4 * 1024;
+    periph_service_handle_t input_ser = input_key_service_create(&input_cfg);
+
+    input_key_service_add_key(input_ser, input_key_info, INPUT_KEY_NUM);
+    periph_service_set_callback(input_ser, input_key_service_cb, NULL);
     audio_element_handle_t *current_decoder;
 
     audio_pipeline_handle_t pipeline;
-    audio_element_handle_t http_stream_reader, i2s_stream_writer, aac_decoder, mp3_decoder;
+    audio_element_handle_t i2s_stream_writer, aac_decoder, mp3_decoder, http_stream_reader;
 
-    size_t urlMsgLen = 0;
-    while(urlMsgLen <= 0) {
-        ESP_LOGW(TAG, "Waiting for radio URL config...");
-        // urlMsgLen = xMessageBufferReceive(urlMsg, urlBuf, URL_BUF_SIZE, msTicks(5000));
-        urlMsgLen = 1;
-        strcpy(urlBuf, "http://stream4.nadaje.com:11986/prs");
-    }
-    ESP_LOGI(TAG, "Radio config received");
+    // size_t urlMsgLen = 0;
+    // while(urlMsgLen <= 0) {
+    //     ESP_LOGW(TAG, "Waiting for radio URL config...");
+    //     // urlMsgLen = xMessageBufferReceive(urlMsg, urlBuf, URL_BUF_SIZE, msTicks(5000));
+    //     urlMsgLen = 1;
+    //     strcpy(urlBuf, "http://stream4.nadaje.com:11986/prs");
+    // }
+    // ESP_LOGI(TAG, "Radio config received");
 
     ESP_LOGE(TAG, "I MANAGED TO GET HERE 1");// START AUDIO CODEC CHIP //
     audio_board_handle_t board_handle = audio_board_init();
@@ -174,7 +352,7 @@ void radioTask(void *args) {
     ESP_LOGE(TAG, "I MANAGED TO GET HERE 10");// SET HTTP STREAM URI
     audio_element_set_uri(http_stream_reader, urlBuf);
 
-    ESP_LOGE(TAG, "I MANAGED TO GET HERE 11");// START A FiFi CONNECTION
+    ESP_LOGE(TAG, "I MANAGED TO GET HERE 11");// START A WiFi CONNECTION
     esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
     periph_wifi_cfg_t wifi_cfg = {
@@ -185,23 +363,6 @@ void radioTask(void *args) {
     esp_periph_start(set, wifi_handle);
     periph_wifi_wait_for_connected(wifi_handle, portMAX_DELAY);
 
-    // ESP_LOGI(TAG, "[ 1 ] Initialize peripherals");
-    esp_periph_config_t periph_cfg2 = DEFAULT_ESP_PERIPH_SET_CONFIG();
-    esp_periph_set_handle_t set2 = esp_periph_set_init(&periph_cfg2);
-
-    // ESP_LOGI(TAG, "[ 2 ] Initialize Button peripheral with board init");
-    audio_board_key_init(set2);
-
-    // ESP_LOGI(TAG, "[ 3 ] Create and start input key service");
-    input_key_service_info_t input_key_info[] = INPUT_KEY_DEFAULT_INFO();
-    input_key_service_cfg_t input_cfg = INPUT_KEY_SERVICE_DEFAULT_CONFIG();
-    input_cfg.handle = set2;
-    input_cfg.based_cfg.task_stack = 4 * 1024;
-    periph_service_handle_t input_ser = input_key_service_create(&input_cfg);
-
-    input_key_service_add_key(input_ser, input_key_info, INPUT_KEY_NUM);
-    periph_service_set_callback(input_ser, input_key_service_cb, NULL);
-
     ESP_LOGE(TAG, "I MANAGED TO GET HERE 12");// EVENT LISTENER
     audio_event_iface_cfg_t evt_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
     audio_event_iface_handle_t evt = audio_event_iface_init(&evt_cfg);
@@ -210,7 +371,6 @@ void radioTask(void *args) {
 
     ESP_LOGE(TAG, "I MANAGED TO GET HERE 13");// START THE PIPELINE
     audio_pipeline_run(pipeline);
-
 
     while(1) {
         audio_event_iface_msg_t msg;
@@ -280,46 +440,50 @@ void radioTask(void *args) {
 
 static esp_err_t input_key_service_cb(periph_service_handle_t handle, periph_service_event_t *evt, void *ctx)
 {
-    ESP_LOGD(TAG, "[ * ] input key id is %d, %d", (int)evt->data, evt->type);
-    const char *key_types[INPUT_KEY_SERVICE_ACTION_PRESS_RELEASE + 1] = {"UNKNOWN", "CLICKED", "CLICK RELEASED", "PRESSED", "PRESS RELEASED"};
-    switch ((int)evt->data) {
-        case INPUT_KEY_USER_ID_REC:
-            ESP_LOGI(TAG, "[ * ] [Rec] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_SET:
-            ESP_LOGI(TAG, "[ * ] [SET] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_PLAY:
-            ESP_LOGI(TAG, "[ * ] [Play] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_MODE:
-            ESP_LOGI(TAG, "[ * ] [MODE] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_VOLDOWN:
-            ESP_LOGI(TAG, "[ * ] [Vol-] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_VOLUP:
-            ESP_LOGI(TAG, "[ * ] [Vol+] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_MUTE:
-            ESP_LOGI(TAG, "[ * ] [MUTE] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_CAPTURE:
-            ESP_LOGI(TAG, "[ * ] [CAPTURE] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_MSG:
-            ESP_LOGI(TAG, "[ * ] [MSG] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_BATTERY_CHARGING:
-            ESP_LOGI(TAG, "[ * ] [BATTERY_CHARGING] KEY %s", key_types[evt->type]);
-            break;
-        case INPUT_KEY_USER_ID_WAKEUP:
-            ESP_LOGI(TAG, "[ * ] [WAKEUP] KEY %s", key_types[evt->type]);
-            break;
-        default:
-            ESP_LOGE(TAG, "User Key ID[%d] does not support", (int)evt->data);
-            break;
+    if ((int)evt->data == INPUT_KEY_USER_ID_PLAY && evt->type == INPUT_KEY_SERVICE_ACTION_CLICK) {
+        ESP_LOGI(TAG, "PLAY pressed");
+        xSemaphoreGiveFromISR( xSemaphore, NULL );
     }
+    // ESP_LOGD(TAG, "[ * ] input key id is %d, %d", (int)evt->data, evt->type);
+    // const char *key_types[INPUT_KEY_SERVICE_ACTION_PRESS_RELEASE + 1] = {"UNKNOWN", "CLICKED", "CLICK RELEASED", "PRESSED", "PRESS RELEASED"};
+    // switch ((int)evt->data) {
+    //     case INPUT_KEY_USER_ID_REC:
+    //         ESP_LOGI(TAG, "[ * ] [Rec] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_SET:
+    //         ESP_LOGI(TAG, "[ * ] [SET] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_PLAY:
+    //         ESP_LOGI(TAG, "[ * ] [Play] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_MODE:
+    //         ESP_LOGI(TAG, "[ * ] [MODE] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_VOLDOWN:
+    //         ESP_LOGI(TAG, "[ * ] [Vol-] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_VOLUP:
+    //         ESP_LOGI(TAG, "[ * ] [Vol+] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_MUTE:
+    //         ESP_LOGI(TAG, "[ * ] [MUTE] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_CAPTURE:
+    //         ESP_LOGI(TAG, "[ * ] [CAPTURE] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_MSG:
+    //         ESP_LOGI(TAG, "[ * ] [MSG] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_BATTERY_CHARGING:
+    //         ESP_LOGI(TAG, "[ * ] [BATTERY_CHARGING] KEY %s", key_types[evt->type]);
+    //         break;
+    //     case INPUT_KEY_USER_ID_WAKEUP:
+    //         ESP_LOGI(TAG, "[ * ] [WAKEUP] KEY %s", key_types[evt->type]);
+    //         break;
+    //     default:
+    //         ESP_LOGE(TAG, "User Key ID[%d] does not support", (int)evt->data);
+    //         break;
+    // }
 
     return ESP_OK;
 }

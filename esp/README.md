@@ -23,6 +23,9 @@ In VSCode go **View** -> **Command palette** and run `ESP-ADF: Install ESP-ADF`
 include($ENV{ADF_PATH}/CMakeLists.txt)
 ```
 
+## SD Card
+Use 1-line mode, not 4-line
+
 
 # Known issues
 ### printf stack overflow
