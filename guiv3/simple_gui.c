@@ -24,20 +24,6 @@ typedef struct
    GtkWidget *paste;
 } EditMenu;
 
-// typedef struct
-// {
-//    GtkWidget *menu_label;
-//    GtkWidget *menu;
-//    GtkWidget *font;
-// } OptionsMenu;
-
-// typedef struct
-// {
-//    GtkWidget *menu_label;
-//    GtkWidget *menu;
-//    GtkWidget *about;
-// } HelpMenu;
-
 typedef struct
 {
    GtkWidget *scrolled_window;
@@ -54,8 +40,6 @@ typedef struct
    GtkWidget *toolbar;
    FileMenu *filemenu;
    EditMenu *editmenu;
-   // OptionsMenu *options_menu;
-   // HelpMenu *helpmenu;
 } GreatGUIUI;
 
 typedef struct
@@ -64,10 +48,9 @@ typedef struct
    gint tab_number;
 } FileData;
 
-// static int files_open = 0;
 
 static GList *filename_data = NULL;       /* Linked list of open file names */
-static PangoFontDescription *desc = NULL; /* Global font for all tabs */
+// static PangoFontDescription *desc = NULL; /* Global font for all tabs */
 
 static void quit_application(GtkWidget *, gpointer);
 static void text_edit_init_GUI(GreatGUIUI *);
@@ -115,7 +98,7 @@ static void quit_application(GtkWidget *window, gpointer data)
 
 static void text_edit_init_GUI(GreatGUIUI *app)
 {
-   desc = pango_font_description_from_string("Progsole normal 12");
+   // desc = pango_font_description_from_string("Progsole normal 12");
    FileObject *file = text_edit_file_new();
    text_edit_register_filename("Untitled", 0); /* Keep track of scratch buffer's filename */
 
