@@ -1,19 +1,24 @@
-GCCF = gcc -Wall -ggdb -O0
+GCCF = gcc -Wall -ggdb -Ofast
+NAME = simple_gui
 
 .PHONY: prepare
 prepare:
-	sudo dnf install gtk2-devel gstreamer1-devel clutter-devel webkit2gtk2-devel libgda-devel gobject-introspection-devel
-	sudo dnf install devhelp gtk2-devel-docs gstreamer1-devel-docs clutter-doc
+	sudo dnf install gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel libgda-devel gobject-introspection-devel
+	sudo dnf install devhelp gtk3-devel-docs clutter-doc
 
 .PHONY: build
 build:
-	gcc -g -Wall simple_gui.c -o simple_gui `pkg-config --cflags --libs gtk+-3.0`
-	# gcc -g -Wall simple_gui_2.c -o simple_gui_2 `pkg-config --cflags --libs gtk+-2.0`
+	gcc -g -Wall $(NAME).c -o $(NAME) `pkg-config --cflags --libs gtk+-3.0`
 
 .PHONY: run
 run:
-	./p1
+	./$(NAME)
+
+.PHONY: all
+all:
+	make build
+	make run
 
 .PHONY: clean
 clean:
-	rm p1 simple_gui.o
+	rm p1 $(NAME).o

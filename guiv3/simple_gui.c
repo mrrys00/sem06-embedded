@@ -119,7 +119,7 @@ static void text_edit_init_GUI(GreatGUIUI *app)
    FileObject *file = text_edit_file_new();
    text_edit_register_filename("Untitled", 0); /* Keep track of scratch buffer's filename */
 
-   app->vbox = gtk_box_new(TRUE, 0);      // vertically position - true :D
+   app->vbox = gtk_box_new(TRUE, 0); // vertically position - true :D
    app->notebook = gtk_notebook_new();
    app->menubar = gtk_menu_bar_new();
 
@@ -168,11 +168,11 @@ static void text_edit_create_menus(GreatGUIUI *app)
    gtk_menu_shell_append(GTK_MENU_SHELL(file->menu), file->separator);
    gtk_menu_shell_append(GTK_MENU_SHELL(file->menu), file->quit);
    gtk_menu_set_accel_group(GTK_MENU(file->menu), group);
-   gtk_widget_add_accelerator(file->new, "activate", group, GDK_MAN, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   gtk_widget_add_accelerator(file->open, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   gtk_widget_add_accelerator(file->save, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   gtk_widget_add_accelerator(file->close, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   gtk_widget_add_accelerator(file->quit, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+   // gtk_widget_add_accelerator(file->new, "activate", group, GDK_MAN, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+   // gtk_widget_add_accelerator(file->open, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+   // gtk_widget_add_accelerator(file->save, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+   // gtk_widget_add_accelerator(file->close, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+   // gtk_widget_add_accelerator(file->quit, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
    edit->menu_label = gtk_menu_item_new_with_label("Edit");
    edit->menu = gtk_menu_new();
@@ -184,9 +184,9 @@ static void text_edit_create_menus(GreatGUIUI *app)
    gtk_menu_shell_append(GTK_MENU_SHELL(edit->menu), edit->copy);
    gtk_menu_shell_append(GTK_MENU_SHELL(edit->menu), edit->paste);
    gtk_menu_set_accel_group(GTK_MENU(edit->menu), group);
-   gtk_widget_add_accelerator(edit->cut, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   gtk_widget_add_accelerator(edit->copy, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   gtk_widget_add_accelerator(edit->paste, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+   // gtk_widget_add_accelerator(edit->cut, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+   // gtk_widget_add_accelerator(edit->copy, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+   // gtk_widget_add_accelerator(edit->paste, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
    // options->menu_label = gtk_menu_item_new_with_label("Options");
    // options->menu = gtk_menu_new();
@@ -209,10 +209,10 @@ static void text_edit_create_menus(GreatGUIUI *app)
    g_signal_connect(G_OBJECT(file->open), "activate", G_CALLBACK(text_edit_open_file), (gpointer)app->notebook);
    g_signal_connect(G_OBJECT(file->save), "activate", G_CALLBACK(text_edit_save_file), (gpointer)app->notebook);
    g_signal_connect(G_OBJECT(file->close), "activate", G_CALLBACK(text_edit_close_file), (gpointer)app->notebook);
-   g_signal_connect(G_OBJECT(file->quit), "activate", G_CALLBACK(quit_application), NULL);
    g_signal_connect(G_OBJECT(edit->cut), "activate", G_CALLBACK(text_edit_cut_to_clipboard), (gpointer)app->notebook);
    g_signal_connect(G_OBJECT(edit->copy), "activate", G_CALLBACK(text_edit_copy_to_clipboard), (gpointer)app->notebook);
    g_signal_connect(G_OBJECT(edit->paste), "activate", G_CALLBACK(text_edit_paste_from_clipboard), (gpointer)app->notebook);
+   g_signal_connect(G_OBJECT(file->quit), "activate", G_CALLBACK(quit_application), NULL);
 
    // g_signal_connect(G_OBJECT(options->font), "activate",
    //                  G_CALLBACK(text_edit_select_font), (gpointer)app->notebook);
