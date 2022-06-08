@@ -4,7 +4,7 @@
 1. Insert the card into ESP-32's slot
 1. Run the software (or press `RESET` if it's already running)
 1. After a few seconds press `PLAY`
-1. Radio should be available at the headphone jack socket. If not, verify the config and try again
+1. Radio should be available at the headphone jack socket *(MicroSD card can be safely removed now)*. If not, verify the config and try again
 1. To change the station, just repeat these steps from the beginning
 
 ## Config
