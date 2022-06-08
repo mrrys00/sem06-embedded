@@ -40,7 +40,7 @@ typedef struct
    GtkWidget *toolbar;
    FileMenu *filemenu;
    EditMenu *editmenu;
-} GreatGUIUI;
+} GreatGUI;
 
 typedef struct
 {
@@ -51,32 +51,32 @@ typedef struct
 
 static GList *filename_data = NULL;    // opened files list
 
+static void notepad_init_GUI(GreatGUI *);
+static void notepad_create_menus(GreatGUI *);
+static void notepad_create_toolbar_items(GreatGUI *);
+FileObject *notepad_file_new(void);
+static void notepad_tab_new_with_file(GtkMenuItem *, GtkNotebook *);
+static void notepad_open_file(GtkMenuItem *, GtkNotebook *);
+static void notepad_cut_to_clipboard(GtkMenuItem *, GtkNotebook *);
+static void notepad_copy_to_clipboard(GtkMenuItem *, GtkNotebook *);
+static void notepad_paste_from_clipboard(GtkMenuItem *, GtkNotebook *);
+static void notepad_close_file(GtkMenuItem *, GtkNotebook *);
+static void notepad_save_file(GtkMenuItem *, GtkNotebook *);
+static void notepad_register_filename(gchar *fname, gint tab_num);
+static gchar *notepad_get_filename(gint tab_num);
 static void quit_application(GtkWidget *, gpointer);
-static void text_edit_init_GUI(GreatGUIUI *);
-static void text_edit_create_menus(GreatGUIUI *);
-static void text_edit_create_toolbar_items(GreatGUIUI *);
-FileObject *text_edit_file_new(void);
-static void text_edit_tab_new_with_file(GtkMenuItem *, GtkNotebook *);
-static void text_edit_open_file(GtkMenuItem *, GtkNotebook *);
-static void text_edit_cut_to_clipboard(GtkMenuItem *, GtkNotebook *);
-static void text_edit_copy_to_clipboard(GtkMenuItem *, GtkNotebook *);
-static void text_edit_paste_from_clipboard(GtkMenuItem *, GtkNotebook *);
-static void text_edit_close_file(GtkMenuItem *, GtkNotebook *);
-static void text_edit_save_file(GtkMenuItem *, GtkNotebook *);
-static void text_edit_register_filename(gchar *fname, gint tab_num);
-static gchar *text_edit_get_filename(gint tab_num);
 
 int main(int argc, char *argv[])
 {
-   GreatGUIUI app;
+   GreatGUI app;
    gtk_init(&argc, &argv);
-   app.toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL); // windpw
+   app.toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL); // window
 
-   gtk_window_set_title(GTK_WINDOW(app.toplevel), "GreatGUI");
+   gtk_window_set_title(GTK_WINDOW(app.toplevel), "Radio notepad");
    gtk_window_set_default_size(GTK_WINDOW(app.toplevel), 650, 350);
 
    g_signal_connect(G_OBJECT(app.toplevel), "destroy", G_CALLBACK(quit_application), NULL);
-   text_edit_init_GUI(&app);        // init gui
+   notepad_init_GUI(&app);        // init gui
    gtk_widget_show_all(app.toplevel);
    gtk_main();
 
@@ -88,17 +88,17 @@ static void quit_application(GtkWidget *window, gpointer data)
    gtk_main_quit();
 }
 
-static void text_edit_init_GUI(GreatGUIUI *app)
+static void notepad_init_GUI(GreatGUI *app)
 {
-   FileObject *file = text_edit_file_new();
-   text_edit_register_filename("New", 0);
+   FileObject *file = notepad_file_new();
+   notepad_register_filename("New", 0);
 
    app->vbox = gtk_box_new(TRUE, 0);      // vertically position - true :D
    app->notebook = gtk_notebook_new();
    app->menubar = gtk_menu_bar_new();
 
-   text_edit_create_menus(app);
-   text_edit_create_toolbar_items(app);
+   notepad_create_menus(app);
+   notepad_create_toolbar_items(app);
 
    gtk_notebook_set_show_tabs(GTK_NOTEBOOK(app->notebook), TRUE);
    gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), file->scrolled_window, file->tab_label);
@@ -106,7 +106,7 @@ static void text_edit_init_GUI(GreatGUIUI *app)
    gtk_container_add(GTK_CONTAINER(app->toplevel), app->vbox);
 }
 
-static void text_edit_create_menus(GreatGUIUI *app)
+static void notepad_create_menus(GreatGUI *app)
 {
    FileMenu *file;
    EditMenu *edit;
@@ -151,19 +151,19 @@ static void text_edit_create_menus(GreatGUIUI *app)
    gtk_menu_shell_append(GTK_MENU_SHELL(app->menubar), file->menu_label);
    gtk_menu_shell_append(GTK_MENU_SHELL(app->menubar), edit->menu_label);
 
-   g_signal_connect(G_OBJECT(file->new), "activate", G_CALLBACK(text_edit_tab_new_with_file), (gpointer)app->notebook);
-   g_signal_connect(G_OBJECT(file->open), "activate", G_CALLBACK(text_edit_open_file), (gpointer)app->notebook);
-   g_signal_connect(G_OBJECT(file->save), "activate", G_CALLBACK(text_edit_save_file), (gpointer)app->notebook);
-   g_signal_connect(G_OBJECT(file->close), "activate", G_CALLBACK(text_edit_close_file), (gpointer)app->notebook);
-   g_signal_connect(G_OBJECT(edit->cut), "activate", G_CALLBACK(text_edit_cut_to_clipboard), (gpointer)app->notebook);
-   g_signal_connect(G_OBJECT(edit->copy), "activate", G_CALLBACK(text_edit_copy_to_clipboard), (gpointer)app->notebook);
-   g_signal_connect(G_OBJECT(edit->paste), "activate", G_CALLBACK(text_edit_paste_from_clipboard), (gpointer)app->notebook);
+   g_signal_connect(G_OBJECT(file->new), "activate", G_CALLBACK(notepad_tab_new_with_file), (gpointer)app->notebook);
+   g_signal_connect(G_OBJECT(file->open), "activate", G_CALLBACK(notepad_open_file), (gpointer)app->notebook);
+   g_signal_connect(G_OBJECT(file->save), "activate", G_CALLBACK(notepad_save_file), (gpointer)app->notebook);
+   g_signal_connect(G_OBJECT(file->close), "activate", G_CALLBACK(notepad_close_file), (gpointer)app->notebook);
+   g_signal_connect(G_OBJECT(edit->cut), "activate", G_CALLBACK(notepad_cut_to_clipboard), (gpointer)app->notebook);
+   g_signal_connect(G_OBJECT(edit->copy), "activate", G_CALLBACK(notepad_copy_to_clipboard), (gpointer)app->notebook);
+   g_signal_connect(G_OBJECT(edit->paste), "activate", G_CALLBACK(notepad_paste_from_clipboard), (gpointer)app->notebook);
    g_signal_connect(G_OBJECT(file->quit), "activate", G_CALLBACK(quit_application), NULL);
 
    gtk_box_pack_start(GTK_BOX(app->vbox), app->menubar, FALSE, FALSE, 0);     // add menu
 }
 
-static void text_edit_create_toolbar_items(GreatGUIUI *app)
+static void notepad_create_toolbar_items(GreatGUI *app)
 {
    GtkWidget *toolbar;
    GtkToolItem *new, *open, *save;
@@ -183,7 +183,7 @@ static void text_edit_create_toolbar_items(GreatGUIUI *app)
    gtk_box_pack_start(GTK_BOX(app->vbox), toolbar, FALSE, FALSE, 0);
 }
 
-FileObject *text_edit_file_new(void)
+FileObject *notepad_file_new(void)
 {
    FileObject *new_file = g_new(FileObject, 1);
 
@@ -203,17 +203,17 @@ FileObject *text_edit_file_new(void)
    return new_file;
 }
 
-static void text_edit_tab_new_with_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
+static void notepad_tab_new_with_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
 {
-   FileObject *f = text_edit_file_new();
+   FileObject *f = notepad_file_new();
    gint current_tab;
 
    current_tab = gtk_notebook_append_page(notebook, f->scrolled_window, f->tab_label);
-   text_edit_register_filename("Untitled", current_tab);
+   notepad_register_filename("Untitled", current_tab);
    gtk_widget_show_all(GTK_WIDGET(notebook));
 }
 
-static void text_edit_open_file(GtkMenuItem *menu_item,
+static void notepad_open_file(GtkMenuItem *menu_item,
                                 GtkNotebook *notebook)
 {
    GList *child_list;
@@ -271,8 +271,8 @@ static void text_edit_open_file(GtkMenuItem *menu_item,
             switch (id)
             {
             case GTK_RESPONSE_ACCEPT:
-               text_edit_save_file(NULL, notebook);
-               text_edit_register_filename(filename, current_page);
+               notepad_save_file(NULL, notebook);
+               notepad_register_filename(filename, current_page);
                break;
 
             case GTK_RESPONSE_CLOSE:
@@ -293,7 +293,7 @@ static void text_edit_open_file(GtkMenuItem *menu_item,
             mark = gtk_text_buffer_get_insert(buffer);
             gtk_text_buffer_get_iter_at_mark(buffer, &start, mark);
             gtk_text_buffer_set_text(buffer, contents, -1);
-            text_edit_register_filename(filename, current_page);
+            notepad_register_filename(filename, current_page);
             gtk_label_set_text(GTK_LABEL(tab_name), basename(filename));
          }
          else
@@ -312,7 +312,7 @@ static void text_edit_open_file(GtkMenuItem *menu_item,
    }
 }
 
-static void text_edit_cut_to_clipboard(GtkMenuItem *menu_item, GtkNotebook *notebook)
+static void notepad_cut_to_clipboard(GtkMenuItem *menu_item, GtkNotebook *notebook)
 {
    GList *child_list;
    GtkWidget *textview;
@@ -330,7 +330,7 @@ static void text_edit_cut_to_clipboard(GtkMenuItem *menu_item, GtkNotebook *note
    gtk_text_buffer_cut_clipboard(buffer, clipboard, TRUE);
 }
 
-static void text_edit_copy_to_clipboard(GtkMenuItem *menu_item, GtkNotebook *notebook)
+static void notepad_copy_to_clipboard(GtkMenuItem *menu_item, GtkNotebook *notebook)
 {
    GList *child_list;
    GtkWidget *textview;
@@ -348,7 +348,7 @@ static void text_edit_copy_to_clipboard(GtkMenuItem *menu_item, GtkNotebook *not
    gtk_text_buffer_copy_clipboard(buffer, clipboard);
 }
 
-static void text_edit_paste_from_clipboard(GtkMenuItem *menu_item, GtkNotebook *notebook)
+static void notepad_paste_from_clipboard(GtkMenuItem *menu_item, GtkNotebook *notebook)
 {
    GList *child_list;
    GtkWidget *textview;
@@ -366,7 +366,7 @@ static void text_edit_paste_from_clipboard(GtkMenuItem *menu_item, GtkNotebook *
    gtk_text_buffer_paste_clipboard(buffer, clipboard, NULL, TRUE);
 }
 
-static void text_edit_close_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
+static void notepad_close_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
 {
    GtkWidget *scrolled_win;
    gint current_page;
@@ -377,7 +377,7 @@ static void text_edit_close_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
    gtk_widget_destroy(scrolled_win); /* Remove current tab */
 }
 
-static void text_edit_save_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
+static void notepad_save_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
 {
    GList *child_list;
    GtkWidget *dialog;
@@ -414,7 +414,7 @@ static void text_edit_save_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
 
          g_file_set_contents(filename, contents, -1, NULL);
 
-         text_edit_register_filename(filename, current_page); // ADDED
+         notepad_register_filename(filename, current_page); // ADDED
 
          gtk_label_set_text(GTK_LABEL(tab_label), basename(filename));
       }
@@ -429,7 +429,7 @@ static void text_edit_save_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
    else
    {
       // edit existing file
-      filename = text_edit_get_filename(current_page);
+      filename = notepad_get_filename(current_page);
 
       buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
       gtk_text_buffer_get_bounds(buffer, &start, &end);
@@ -439,7 +439,7 @@ static void text_edit_save_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
    }
 }
 
-static void text_edit_register_filename(gchar *fname, gint tab_num)
+static void notepad_register_filename(gchar *fname, gint tab_num)
 {
    // manage file and its saves
    FileData *f = g_new(FileData, 1);
@@ -469,7 +469,7 @@ static void text_edit_register_filename(gchar *fname, gint tab_num)
    }
 }
 
-static gchar *text_edit_get_filename(gint tab_num)
+static gchar *notepad_get_filename(gint tab_num)
 {
    GList *list = filename_data;
 

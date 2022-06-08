@@ -21,4 +21,4 @@ all:
 
 .PHONY: clean
 clean:
-	rm p1 $(NAME).o
+	rm $(NAME)
