@@ -49,8 +49,7 @@ typedef struct
 } FileData;
 
 
-static GList *filename_data = NULL;       /* Linked list of open file names */
-// static PangoFontDescription *desc = NULL; /* Global font for all tabs */
+static GList *filename_data = NULL;    // opened files list
 
 static void quit_application(GtkWidget *, gpointer);
 static void text_edit_init_GUI(GreatGUIUI *);
@@ -58,13 +57,10 @@ static void text_edit_create_menus(GreatGUIUI *);
 static void text_edit_create_toolbar_items(GreatGUIUI *);
 FileObject *text_edit_file_new(void);
 static void text_edit_tab_new_with_file(GtkMenuItem *, GtkNotebook *);
-// static void text_edit_select_font(GtkMenuItem *, gpointer);
-// static void text_edit_apply_font_selection(GtkNotebook *);
 static void text_edit_open_file(GtkMenuItem *, GtkNotebook *);
 static void text_edit_cut_to_clipboard(GtkMenuItem *, GtkNotebook *);
 static void text_edit_copy_to_clipboard(GtkMenuItem *, GtkNotebook *);
 static void text_edit_paste_from_clipboard(GtkMenuItem *, GtkNotebook *);
-// static void text_edit_show_about_dialog(GtkMenuItem *, GtkWindow *);
 static void text_edit_close_file(GtkMenuItem *, GtkNotebook *);
 static void text_edit_save_file(GtkMenuItem *, GtkNotebook *);
 static void text_edit_register_filename(gchar *fname, gint tab_num);
@@ -74,17 +70,13 @@ int main(int argc, char *argv[])
 {
    GreatGUIUI app;
    gtk_init(&argc, &argv);
-   app.toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL); /* Main window */
+   app.toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL); // windpw
 
    gtk_window_set_title(GTK_WINDOW(app.toplevel), "GreatGUI");
    gtk_window_set_default_size(GTK_WINDOW(app.toplevel), 650, 350);
 
-   /*
-    * Connect signal handler for destruction of
-    * top-level window.
-    */
    g_signal_connect(G_OBJECT(app.toplevel), "destroy", G_CALLBACK(quit_application), NULL);
-   text_edit_init_GUI(&app); /* Build interface */
+   text_edit_init_GUI(&app);        // init gui
    gtk_widget_show_all(app.toplevel);
    gtk_main();
 
@@ -98,11 +90,10 @@ static void quit_application(GtkWidget *window, gpointer data)
 
 static void text_edit_init_GUI(GreatGUIUI *app)
 {
-   // desc = pango_font_description_from_string("Progsole normal 12");
    FileObject *file = text_edit_file_new();
-   text_edit_register_filename("Untitled", 0); /* Keep track of scratch buffer's filename */
+   text_edit_register_filename("New", 0);
 
-   app->vbox = gtk_box_new(TRUE, 0); // vertically position - true :D
+   app->vbox = gtk_box_new(TRUE, 0);      // vertically position - true :D
    app->notebook = gtk_notebook_new();
    app->menubar = gtk_menu_bar_new();
 
@@ -119,19 +110,13 @@ static void text_edit_create_menus(GreatGUIUI *app)
 {
    FileMenu *file;
    EditMenu *edit;
-   // OptionsMenu *options;
-   // HelpMenu *help;
    GtkAccelGroup *group = gtk_accel_group_new();
 
    app->filemenu = g_new(FileMenu, 1);
-   app->editmenu = g_new(EditMenu, 1);
-   // app->options_menu = g_new(OptionsMenu, 1);
-   // app->helpmenu = g_new(HelpMenu, 1);
-
    file = app->filemenu;
+
+   app->editmenu = g_new(EditMenu, 1);
    edit = app->editmenu;
-   // options = app->options_menu;
-   // help = app->helpmenu;
 
    gtk_window_add_accel_group(GTK_WINDOW(app->toplevel), group);
 
@@ -151,11 +136,6 @@ static void text_edit_create_menus(GreatGUIUI *app)
    gtk_menu_shell_append(GTK_MENU_SHELL(file->menu), file->separator);
    gtk_menu_shell_append(GTK_MENU_SHELL(file->menu), file->quit);
    gtk_menu_set_accel_group(GTK_MENU(file->menu), group);
-   // gtk_widget_add_accelerator(file->new, "activate", group, GDK_MAN, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   // gtk_widget_add_accelerator(file->open, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   // gtk_widget_add_accelerator(file->save, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   // gtk_widget_add_accelerator(file->close, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   // gtk_widget_add_accelerator(file->quit, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
    edit->menu_label = gtk_menu_item_new_with_label("Edit");
    edit->menu = gtk_menu_new();
@@ -167,26 +147,9 @@ static void text_edit_create_menus(GreatGUIUI *app)
    gtk_menu_shell_append(GTK_MENU_SHELL(edit->menu), edit->copy);
    gtk_menu_shell_append(GTK_MENU_SHELL(edit->menu), edit->paste);
    gtk_menu_set_accel_group(GTK_MENU(edit->menu), group);
-   // gtk_widget_add_accelerator(edit->cut, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   // gtk_widget_add_accelerator(edit->copy, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-   // gtk_widget_add_accelerator(edit->paste, "activate", group, GDK_OK, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-
-   // options->menu_label = gtk_menu_item_new_with_label("Options");
-   // options->menu = gtk_menu_new();
-   // options->font = gtk_menu_item_new_with_label("Pzdr Szymon Ryś :D");
-   // gtk_menu_item_set_submenu(GTK_MENU_ITEM(options->menu_label), options->menu);
-   // gtk_menu_shell_append(GTK_MENU_SHELL(options->menu), options->font);
-
-   // help->menu_label = gtk_menu_item_new_with_label("Help");
-   // help->menu = gtk_menu_new();
-   // help->about = gtk_menu_item_new_with_label("About");
-   // gtk_menu_item_set_submenu(GTK_MENU_ITEM(help->menu_label), help->menu);
-   // gtk_menu_shell_append(GTK_MENU_SHELL(help->menu), help->about);
 
    gtk_menu_shell_append(GTK_MENU_SHELL(app->menubar), file->menu_label);
    gtk_menu_shell_append(GTK_MENU_SHELL(app->menubar), edit->menu_label);
-   // gtk_menu_shell_append(GTK_MENU_SHELL(app->menubar), options->menu_label);
-   // gtk_menu_shell_append(GTK_MENU_SHELL(app->menubar), help->menu_label);
 
    g_signal_connect(G_OBJECT(file->new), "activate", G_CALLBACK(text_edit_tab_new_with_file), (gpointer)app->notebook);
    g_signal_connect(G_OBJECT(file->open), "activate", G_CALLBACK(text_edit_open_file), (gpointer)app->notebook);
@@ -197,14 +160,7 @@ static void text_edit_create_menus(GreatGUIUI *app)
    g_signal_connect(G_OBJECT(edit->paste), "activate", G_CALLBACK(text_edit_paste_from_clipboard), (gpointer)app->notebook);
    g_signal_connect(G_OBJECT(file->quit), "activate", G_CALLBACK(quit_application), NULL);
 
-   // g_signal_connect(G_OBJECT(options->font), "activate",
-   //                  G_CALLBACK(text_edit_select_font), (gpointer)app->notebook);
-
-   // g_signal_connect(G_OBJECT(help->about), "activate",
-   //                  G_CALLBACK(text_edit_show_about_dialog), (gpointer)app->toplevel);
-
-   /* Add the menubar to the vertical container for the main window */
-   gtk_box_pack_start(GTK_BOX(app->vbox), app->menubar, FALSE, FALSE, 0);
+   gtk_box_pack_start(GTK_BOX(app->vbox), app->menubar, FALSE, FALSE, 0);     // add menu
 }
 
 static void text_edit_create_toolbar_items(GreatGUIUI *app)
@@ -213,8 +169,6 @@ static void text_edit_create_toolbar_items(GreatGUIUI *app)
    GtkToolItem *new, *open, *save;
 
    toolbar = app->toolbar = gtk_toolbar_new();
-   // sep = gtk_separator_tool_item_new();
-   // gtk_toolbar_insert(GTK_TOOLBAR(toolbar), sep, -1);
    gtk_toolbar_set_show_arrow(GTK_TOOLBAR(toolbar), TRUE);
    new = gtk_tool_button_new(gtk_image_new_from_icon_name("document-new", GTK_ICON_SIZE_SMALL_TOOLBAR), NULL);
    open = gtk_tool_button_new(gtk_image_new_from_icon_name("document-open", GTK_ICON_SIZE_SMALL_TOOLBAR), NULL);
@@ -243,15 +197,13 @@ FileObject *text_edit_file_new(void)
    gtk_text_view_set_left_margin(GTK_TEXT_VIEW(new_file->textview), 3);
    gtk_text_view_set_right_margin(GTK_TEXT_VIEW(new_file->textview), 3);
    gtk_text_view_set_pixels_above_lines(GTK_TEXT_VIEW(new_file->textview), 1);
-   // gtk_label_set_attributes(new_file->tab_label, desc); /* desc is global font description */
 
    gtk_container_add(GTK_CONTAINER(new_file->scrolled_window), new_file->textview);
 
    return new_file;
 }
 
-static void text_edit_tab_new_with_file(GtkMenuItem *menu_item,
-                                        GtkNotebook *notebook)
+static void text_edit_tab_new_with_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
 {
    FileObject *f = text_edit_file_new();
    gint current_tab;
@@ -260,51 +212,6 @@ static void text_edit_tab_new_with_file(GtkMenuItem *menu_item,
    text_edit_register_filename("Untitled", current_tab);
    gtk_widget_show_all(GTK_WIDGET(notebook));
 }
-
-// static void text_edit_select_font(GtkMenuItem *menu_item, gpointer notebook)
-// {
-//    GtkWidget *font_dialog = gtk_font_selection_dialog_new(_("Font Selection"));
-//    gchar *fontname;
-//    gint id;
-
-//    gtk_font_selection_dialog_new(_("Font Selection"));
-
-//    id = gtk_dialog_run(GTK_DIALOG(font_dialog));
-
-//    switch (id)
-//    {
-//    case GTK_RESPONSE_OK:
-//    case GTK_RESPONSE_APPLY:
-//       fontname = gtk_font_selection_dialog_new(GTK_FONT_SELECTION_DIALOG(font_dialog));
-//       desc = pango_font_description_from_string(fontname);
-//       break;
-
-//    case GTK_RESPONSE_CANCEL:
-//       break;
-//    }
-//    gtk_widget_destroy(font_dialog);
-
-//    text_edit_apply_font_selection(notebook);
-// }
-
-// static void text_edit_apply_font_selection(GtkNotebook *notebook)
-// {
-//    GList *child_list;
-//    gint pages;
-//    gint i;
-//    GtkWidget *swin;
-
-//    pages = gtk_notebook_get_n_pages(notebook);
-
-//    for (i = 0; i < pages; i++)
-//    {
-//       swin = gtk_notebook_get_nth_page(notebook, i);
-
-//       child_list = gtk_container_get_children(GTK_CONTAINER(swin));
-//       if (GTK_IS_TEXT_VIEW(child_list->data))
-//          gtk_label_set_attributes(child_list->data, desc);
-//    }
-// }
 
 static void text_edit_open_file(GtkMenuItem *menu_item,
                                 GtkNotebook *notebook)
@@ -343,10 +250,6 @@ static void text_edit_open_file(GtkMenuItem *menu_item,
       case GTK_RESPONSE_ACCEPT:
          filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 
-         /**
-          * Check to see whether there is text in the buffer before
-          * opening a file.  If there is, prompt the user to save it.
-          */
          buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
          gtk_text_buffer_get_end_iter(buffer, &end);
          offset = gtk_text_iter_get_offset(&end);
@@ -395,8 +298,7 @@ static void text_edit_open_file(GtkMenuItem *menu_item,
          }
          else
          {
-            /* File does not exist - unknown file name */
-            error_dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, NULL);
+            error_dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, NULL);  // non existing file
 
             gtk_dialog_run(GTK_DIALOG(error_dialog));
             gtk_widget_destroy(error_dialog);
@@ -464,19 +366,6 @@ static void text_edit_paste_from_clipboard(GtkMenuItem *menu_item, GtkNotebook *
    gtk_text_buffer_paste_clipboard(buffer, clipboard, NULL, TRUE);
 }
 
-// static void text_edit_show_about_dialog(GtkMenuItem *menu_item,
-//                                         GtkWindow *parent_window)
-// {
-//    const gchar *authors[] = {"Glenn Schemenauer", NULL};
-
-//    gtk_show_about_dialog(parent_window,
-//                          "program-name", "Great GUI",
-//                          "authors", authors,
-//                          "license", "GNU General Public License",
-//                          "comments", "A simple lightweight GTK+ text editor",
-//                          NULL);
-// }
-
 static void text_edit_close_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
 {
    GtkWidget *scrolled_win;
@@ -539,11 +428,7 @@ static void text_edit_save_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
    }
    else
    {
-      /**
-       * Editing a named file so just write textview contents
-       * to the existing name.
-       */
-
+      // edit existing file
       filename = text_edit_get_filename(current_page);
 
       buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
@@ -556,16 +441,7 @@ static void text_edit_save_file(GtkMenuItem *menu_item, GtkNotebook *notebook)
 
 static void text_edit_register_filename(gchar *fname, gint tab_num)
 {
-   /**
-    * Manage the full path to the open file names
-    * with a linked list.  Keeping the full path around
-    * is important so that saving functionality puts the
-    * file in its proper place (rather than using only the
-    * name in the tab label, which would put it in the current
-    * working directory)
-    */
-   // gint found = FALSE;
-
+   // manage file and its saves
    FileData *f = g_new(FileData, 1);
    GList *node = g_list_alloc();
 
@@ -575,29 +451,21 @@ static void text_edit_register_filename(gchar *fname, gint tab_num)
    node->data = f;
 
    if (filename_data == NULL)
-      filename_data = node; /* First node in list */
+      filename_data = node;         // first file linked list node
    else
    {
-      /**
-       * Go through the list of names and set a full file
-       * path for the tab # we are working with.  If the tab number
-       * passed in is not found, assume we are creating a new name.
-       */
       GList *list = filename_data;
 
       while (list != NULL)
       {
          if (((FileData *)list->data)->tab_number == tab_num)
          {
-            // found = TRUE;
             ((FileData *)list->data)->filename = fname;
             break;
          }
          else
             list = g_list_next(list);
       }
-      // if (!found)
-      //    g_list_append(filename_data, node);
    }
 }
 
